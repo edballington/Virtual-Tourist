@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CoreData
 
 class FlickrClient: NSObject {
     
@@ -30,10 +31,23 @@ class FlickrClient: NSObject {
     
     // MARK: GET
     
-    func getImagesFromFlickrBySearch(methodArguments: [String : AnyObject])  {
+    func getImagesFromFlickrBySearch(lat: Double, long: Double, completionHandler: (result: [[String: AnyObject]]?, error: NSError?) -> Void)  {
+        
+        let methodArguments: [String: AnyObject]  = [
+            "method" : FlickrClient.Methods.photoSearchMethod,
+            FlickrClient.ParameterKeys.ApiKey : FlickrClient.Constants.FlickrAPIKey,
+            "safe_search" : FlickrClient.Constants.SAFE_SEARCH,
+            "content_type" : FlickrClient.Constants.CONTENT_TYPE,
+            "extras" : FlickrClient.Constants.EXTRAS,
+            "format" : FlickrClient.Constants.DATA_FORMAT,
+            "nojsoncallback" : FlickrClient.Constants.NO_JSON_CALLBACK,
+            "lat" : lat,
+            "lon" : long,
+            "bbox" : createBoundingBoxString(lat, long: long)
+        ]
         
         let session = NSURLSession.sharedSession()
-        let urlString = Constants.FlickrBaseURLSecure + escapedParameters(methodArguments)
+        let urlString = Constants.FlickrBaseURLSecure + FlickrClient.escapedParameters(methodArguments)
         let url = NSURL(string: urlString)!
         let request = NSURLRequest(URL: url)
         
@@ -41,18 +55,14 @@ class FlickrClient: NSObject {
             
             /* GUARD: Was there an error? */
             guard (error == nil) else {
-                dispatch_async(dispatch_get_main_queue(), {
-                    self.setUIEnabled(enabled: true)
-                })
-                print("There was an error with your request: \(error)")
+                print("There was an error with your Flickr search request: \(error)")
+                completionHandler(result: nil, error: error)
                 return
             }
             
             /* GUARD: Did we get a successful 2XX response? */
             guard let statusCode = (response as? NSHTTPURLResponse)?.statusCode where statusCode >= 200 && statusCode <= 299 else {
-                dispatch_async(dispatch_get_main_queue(), {
-                    self.setUIEnabled(enabled: true)
-                })
+
                 if let response = response as? NSHTTPURLResponse {
                     print("Your request returned an invalid response! Status code: \(response.statusCode)!")
                 } else if let response = response {
@@ -60,15 +70,14 @@ class FlickrClient: NSObject {
                 } else {
                     print("Your request returned an invalid response!")
                 }
+                completionHandler(result: nil, error: nil)
                 return
             }
             
             /* GUARD: Was there any data returned? */
             guard let data = data else {
-                dispatch_async(dispatch_get_main_queue(), {
-                    self.setUIEnabled(enabled: true)
-                })
                 print("No data was returned by the request!")
+                completionHandler(result: nil, error: nil)
                 return
             }
             
@@ -78,439 +87,74 @@ class FlickrClient: NSObject {
                 parsedResult = try NSJSONSerialization.JSONObjectWithData(data, options: .AllowFragments)
             } catch {
                 parsedResult = nil
-                dispatch_async(dispatch_get_main_queue(), {
-                    self.setUIEnabled(enabled: true)
-                })
                 print("Could not parse the data as JSON: '\(data)'")
                 return
             }
             
             /* GUARD: Did Flickr return an error? */
             guard let stat = parsedResult["stat"] as? String where stat == "ok" else {
-                dispatch_async(dispatch_get_main_queue(), {
-                    self.setUIEnabled(enabled: true)
-                })
                 print("Flickr API returned an error. See error code and message in \(parsedResult)")
+                completionHandler(result: nil, error: nil)
                 return
             }
             
             /* GUARD: Is "photos" key in our result? */
-            guard let photosDictionary = parsedResult["photos"] as? NSDictionary else {
-                dispatch_async(dispatch_get_main_queue(), {
-                    self.setUIEnabled(enabled: true)
-                })
+            guard let resultsDictionary = parsedResult["photos"] as? NSDictionary else {
                 print("Cannot find keys 'photos' in \(parsedResult)")
-                return
-            }
-            
-            /* GUARD: Is "pages" key in the photosDictionary? */
-            guard let totalPages = photosDictionary["pages"] as? Int else {
-                dispatch_async(dispatch_get_main_queue(), {
-                    self.setUIEnabled(enabled: true)
-                })
-                print("Cannot find key 'pages' in \(photosDictionary)")
-                return
-            }
-            
-            /* Pick a random page! */
-            let pageLimit = min(totalPages, 40)
-            let randomPage = Int(arc4random_uniform(UInt32(pageLimit))) + 1
-            self.getImageFromFlickrBySearchWithPage(methodArguments, pageNumber: randomPage)
-        }
-        
-        task.resume()
-    }
-    
-    func taskForUdacityGETMethod(method: String, userID: String, completionHandler: (result: AnyObject!, error: NSError?) -> Void) -> NSURLSessionDataTask {
-        
-       
-        /* Build URL */
-        let urlString = Constants.UdacityBaseURLSecure + method + "/" + userID
-        let url = NSURL(string: urlString)!
-        let request = NSURLRequest(URL: url)
-        
-        /* Make request */
-        let task = session.dataTaskWithRequest(request) { (data, response, error) in
-            
-            /* Check for error */
-            guard (error == nil) else {
-                print("There was an error with your Udacity GET request: \(error)")
-                return
-            }
-            
-            /* Check for a successful 2XX response */
-            guard let statusCode = (response as? NSHTTPURLResponse)?.statusCode where statusCode >= 200 && statusCode <= 299 else {
-                if let response = response as? NSHTTPURLResponse {
-                    print("Your Udacity GET request returned an invalid response! Status code: \(response.statusCode)!")
-                } else if let response = response {
-                    print("Your Udacity GET request returned an invalid response! Response: \(response)!")
-                } else {
-                    print("Your Udacity GET request returned an invalid response!")
-                }
-                
-                completionHandler(result: nil, error: error)
-                return
-            }
-            
-            /* Was there any data returned? */
-            guard let data = data else {
-                print("No data was returned by the request!")
-                return
-            }
-            
-            /* Parse the data and use the data (happens in completion handler)
-            First skip the first 5 characters of the response (Security characters used by Udacity) */
-            
-            let newData = data.subdataWithRange(NSMakeRange(5, data.length - 5))
-            OTMClient.parseJSONWithCompletionHandler(newData, completionHandler: completionHandler)
-            
-        }
-        
-        /* Start the request */
-        task.resume()
-        
-        return task
-
-    }
-    
-    func taskForParseGETMethod(method: String, parameters: [String : AnyObject], completionHandler: (result: AnyObject?, error: NSError?) -> Void) -> NSURLSessionDataTask {
-        
-        
-        /* Build URL */
-        let urlString = Constants.ParseBaseURLSecure + method + OTMClient.escapedParameters(parameters)
-        let url = NSURL(string: urlString)!
-        let request = NSMutableURLRequest(URL: url)
-        request.addValue(OTMClient.Constants.ParseApplicationID, forHTTPHeaderField: OTMClient.ParameterKeys.ApplicationID)
-        request.addValue(OTMClient.Constants.ParseApiKey, forHTTPHeaderField: OTMClient.ParameterKeys.ApiKey)
-        
-        /* Make request */
-        let task = session.dataTaskWithRequest(request) { (data, response, error) in
-            
-            /* Check for error */
-            guard (error == nil) else {
-                print("There was an error with your Parse GET request: \(error)")
-                completionHandler(result: nil, error: error)
-                return
-            }
-            
-            /* Check for a successful 2XX response */
-            guard let statusCode = (response as? NSHTTPURLResponse)?.statusCode where statusCode >= 200 && statusCode <= 299 else {
-                if let response = response as? NSHTTPURLResponse {
-                    print("Your Parse GET request returned an invalid response! Status code: \(response.statusCode)!")
-                } else if let response = response {
-                    print("Your Parse GET request returned an invalid response! Response: \(response)!")
-                } else {
-                    print("Your Parse GET request returned an invalid response!")
-                }
-                
-                completionHandler(result: nil, error: error)
-                return
-            }
-            
-            /* Was there any data returned? */
-            guard let data = data else {
-                print("No data was returned by the request!")
-                return
-            }
-            
-            /*  Parse the data and use the data (happens in completion handler) */
-            OTMClient.parseJSONWithCompletionHandler(data, completionHandler: completionHandler)
-            
-        }
-        
-        /* Start the request */
-        task.resume()
-        
-        return task
-        
-    }
-    
-    func taskForParseGETQueryMethod(method: String, parameters: String, completionHandler: (result: AnyObject?, error: NSError?) -> Void) -> NSURLSessionDataTask {
-        
-        /* Build URL */
-        let urlString = Constants.ParseBaseURLSecure + method + parameters
-        let url = NSURL(string: urlString)!
-        let request = NSMutableURLRequest(URL: url)
-        request.addValue(OTMClient.Constants.ParseApplicationID, forHTTPHeaderField: OTMClient.ParameterKeys.ApplicationID)
-        request.addValue(OTMClient.Constants.ParseApiKey, forHTTPHeaderField: OTMClient.ParameterKeys.ApiKey)
-        
-        /* Make request */
-        let task = session.dataTaskWithRequest(request) { (data, response, error) in
-            
-            /* Check for error */
-            guard (error == nil) else {
-                print("There was an error with your Parse GET request: \(error)")
-                completionHandler(result: nil, error: error)
-                return
-            }
-            
-            /* Check for a successful 2XX response */
-            guard let statusCode = (response as? NSHTTPURLResponse)?.statusCode where statusCode >= 200 && statusCode <= 299 else {
-                if let response = response as? NSHTTPURLResponse {
-                    print("Your Parse GET Query request returned an invalid response! Status code: \(response.statusCode)!")
-                } else if let response = response {
-                    print("Your Parse GET Query request returned an invalid response! Response: \(response)!")
-                } else {
-                    print("Your Parse GET Query request returned an invalid response!")
-                }
-                
-                completionHandler(result: nil, error: error)
-                return
-            }
-            
-            /* Was there any data returned? */
-            guard let data = data else {
-                print("No data was returned by the request!")
-                return
-            }
-            
-            /*  Parse the data and use the data (happens in completion handler) */
-            OTMClient.parseJSONWithCompletionHandler(data, completionHandler: completionHandler)
-            
-        }
-        
-        /* Start the request */
-        task.resume()
-        
-        return task
-        
-    }
-
-    
-    // MARK: POST
-    
-    func taskForUdacityPOSTMethod(method: String, jsonBody: [String:AnyObject], completionHandler: (result: AnyObject!, error: NSError?) -> Void) -> NSURLSessionDataTask {
-        
-        /* Build the URL and configure the request */
-        let urlString = Constants.UdacityBaseURLSecure + method
-        let url = NSURL(string: urlString)!
-        let request = NSMutableURLRequest(URL: url)
-        request.HTTPMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Accept")
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        do {
-            request.HTTPBody = try! NSJSONSerialization.dataWithJSONObject(jsonBody, options: .PrettyPrinted)
-        }
-        
-        /* Make the request */
-        let task = session.dataTaskWithRequest(request) { (data, response, error) in
-            
-            /* GUARD: Was there an error? */
-            guard (error == nil) else {
-                print("There was an error with your Udacity POST request: \(error?.localizedDescription)")
-                completionHandler(result: response, error: error)
-                return
-            }
-            
-            /* GUARD: Did we get a successful 2XX response? */
-            guard let statusCode = (response as? NSHTTPURLResponse)?.statusCode where statusCode >= 200 && statusCode <= 299 else {
-                if let response = response as? NSHTTPURLResponse {
-                    print("Your Udacity POST request returned an invalid response! Status code: \(response.statusCode)!")
-                } else if let response = response {
-                    print("Your Udacity POST request returned an invalid response! Response: \(response)!")
-                } else {
-                    print("Your Udacity POST request returned an invalid response!")
-                }
-                
-                completionHandler(result: response, error: error)
-                return
-            }
-            
-            /* GUARD: Was there any data returned? */
-            guard let data = data else {
-                print("No data was returned by the request!")
-                return
-            }
-            
-            /* Parse the data and use the data (happens in completion handler)
-               First skip the first 5 characters of the response (Security characters used by Udacity) */
-            
-            let newData = data.subdataWithRange(NSMakeRange(5, data.length - 5))
-            OTMClient.parseJSONWithCompletionHandler(newData, completionHandler: completionHandler)
-        }
-        
-        /* Start the request */
-        task.resume()
-        
-        return task
-    }
-    
-    func taskForParsePOSTMethod(method: String, jsonBody: [String:AnyObject], completionHandler: (result: AnyObject?, error: NSError?) -> Void) -> NSURLSessionDataTask {
-        
-        /* Build the URL and configure the request */
-        let urlString = Constants.ParseBaseURLSecure + method
-        let url = NSURL(string: urlString)!
-        let request = NSMutableURLRequest(URL: url)
-        request.HTTPMethod = "POST"
-        request.addValue(OTMClient.Constants.ParseApplicationID, forHTTPHeaderField: OTMClient.ParameterKeys.ApplicationID)
-        request.addValue(OTMClient.Constants.ParseApiKey, forHTTPHeaderField: OTMClient.ParameterKeys.ApiKey)
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        do {
-            request.HTTPBody = try! NSJSONSerialization.dataWithJSONObject(jsonBody, options: .PrettyPrinted)
-        }
-        
-        /*  Make the request */
-        let task = session.dataTaskWithRequest(request) { (data, response, error) in
-            
-            /* GUARD: Was there an error? */
-            guard (error == nil) else {
-                print("There was an error with your request: \(error)")
-                completionHandler(result: nil, error: error)
-                return
-            }
-            
-            /* GUARD: Did we get a successful 2XX response? */
-            guard let statusCode = (response as? NSHTTPURLResponse)?.statusCode where statusCode >= 200 && statusCode <= 299 else {
-                if let response = response as? NSHTTPURLResponse {
-                    print("Your request returned an invalid response! Status code: \(response.statusCode)!")
-                } else if let response = response {
-                    print("Your request returned an invalid response! Response: \(response)!")
-                } else {
-                    print("Your request returned an invalid response!")
-                }
-                
-                completionHandler(result: response, error: error)
-                return
-            }
-            
-            /* GUARD: Was there any data returned? */
-            guard let data = data else {
-                print("No data was returned by the request!")
                 completionHandler(result: nil, error: nil)
                 return
             }
             
-            /* Parse the data and use the data (happens in completion handler) */
-            OTMClient.parseJSONWithCompletionHandler(data, completionHandler: completionHandler)
-        }
-        
-        /* Start the request */
-        task.resume()
-        
-        return task
-    }
-    
-    // MARK: PUT
-    
-    func taskForParsePUTMethod(method: String, objectID : String, jsonBody: [String:AnyObject], completionHandler: (result: AnyObject?, error: NSError?) -> Void) -> NSURLSessionDataTask {
-        
-        /* Build the URL and configure the request */
-        let urlString = Constants.ParseBaseURLSecure + method + "/" + objectID
-        let url = NSURL(string: urlString)!
-        let request = NSMutableURLRequest(URL: url)
-        request.HTTPMethod = "PUT"
-        request.addValue(OTMClient.Constants.ParseApplicationID, forHTTPHeaderField: OTMClient.ParameterKeys.ApplicationID)
-        request.addValue(OTMClient.Constants.ParseApiKey, forHTTPHeaderField: OTMClient.ParameterKeys.ApiKey)
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        do {
-            request.HTTPBody = try! NSJSONSerialization.dataWithJSONObject(jsonBody, options: .PrettyPrinted)
-        }
-        
-        /*  Make the request */
-        let task = session.dataTaskWithRequest(request) { (data, response, error) in
-            
-            /* GUARD: Was there an error? */
-            guard (error == nil) else {
-                print("There was an error with your request: \(error)")
-                completionHandler(result: nil, error: error)
-                return
-            }
-            
-            /* GUARD: Did we get a successful 2XX response? */
-            guard let statusCode = (response as? NSHTTPURLResponse)?.statusCode where statusCode >= 200 && statusCode <= 299 else {
-                if let response = response as? NSHTTPURLResponse {
-                    print("Your request returned an invalid response! Status code: \(response.statusCode)!")
-                } else if let response = response {
-                    print("Your request returned an invalid response! Response: \(response)!")
-                } else {
-                    print("Your request returned an invalid response!")
-                }
-                
-                completionHandler(result: response, error: error)
-                return
-            }
-            
-            /* GUARD: Was there any data returned? */
-            guard let data = data else {
-                print("No data was returned by the request!")
+            /* GUARD: Is "photo" key in the photosDictionary? */
+            guard let photosDictionary = resultsDictionary["photo"] as? [[String: AnyObject]] else {
+                print("Cannot find key 'photo' in \(resultsDictionary)")
                 completionHandler(result: nil, error: nil)
                 return
             }
             
-            /* Parse the data and use the data (happens in completion handler) */
-            OTMClient.parseJSONWithCompletionHandler(data, completionHandler: completionHandler)
+            completionHandler(result: photosDictionary, error: nil)
+            
+            /* Pick random images from the page
+            let totalReturnedImages = photosDictionary.count
+            
+            let numberOfImages = min(totalReturnedImages, Constants.NUM_PHOTOS)
+            let imageIndexArray = self.generateRandomIndexes(numberOfImages)
+            
+            var pictureArray = [Picture]()
+            
+            for index in imageIndexArray {
+                let urlString = photosDictionary[index]["url_m"] as! String
+                let photo = Picture(imageURL: urlString, context: self.sharedContext)
+                pictureArray.append(photo)
+            } */
+            
         }
         
-        /* Start the request */
+        task.resume()
+    }
+    
+    func taskForPhoto (photoURL: String, completionHandler: (imageData: NSData?, error: NSError?) ->  Void) -> NSURLSessionTask {
+        
+        let url = NSURL(string: photoURL)
+        let request = NSURLRequest(URL: url!)
+        
+        let task = session.dataTaskWithRequest(request) { (data, response, error) -> Void in
+            
+            if let error = error {
+                completionHandler(imageData: nil, error: NSError(domain: "taskForPhoto", code: 0, userInfo: [NSLocalizedDescriptionKey : "error with photo download request"]))
+            } else {
+                completionHandler(imageData: data, error: nil)
+            }
+            
+            
+        }
+        
         task.resume()
         
         return task
+        
     }
-
     
-    
-    // MARK: DELETE
-    
-    func taskForUdacityDELETEMethod(method: String, completionHandler: (result: AnyObject!, error: NSError?) -> Void) -> NSURLSessionDataTask {
-        
-        /* Build the URL and configure the request */
-        let urlString = Constants.UdacityBaseURLSecure + method
-        let url = NSURL(string: urlString)!
-        let request = NSMutableURLRequest(URL: url)
-        request.HTTPMethod = "DELETE"
-        
-        var xsrfCookie: NSHTTPCookie? = nil
-        let sharedCookieStorage = NSHTTPCookieStorage.sharedHTTPCookieStorage()
-        for cookie in sharedCookieStorage.cookies! {
-            if cookie.name == "XSRF-TOKEN" { xsrfCookie = cookie }
-        }
-        if let xsrfCookie = xsrfCookie {
-            request.setValue(xsrfCookie.value, forHTTPHeaderField: "X-XSRF-TOKEN")
-        }
-        
-        
-        /* Make the request */
-        let task = session.dataTaskWithRequest(request) { (data, response, error) in
-            
-            /* GUARD: Was there an error? */
-            guard (error == nil) else {
-                print("There was an error with your Udacity DELETE request: \(error)")
-                return
-            }
-            
-            /* GUARD: Did we get a successful 2XX response? */
-            guard let statusCode = (response as? NSHTTPURLResponse)?.statusCode where statusCode >= 200 && statusCode <= 299 else {
-                if let response = response as? NSHTTPURLResponse {
-                    print("Your Udacity DELETE request returned an invalid response! Status code: \(response.statusCode)!")
-                } else if let response = response {
-                    print("Your Udacity DELETE request returned an invalid response! Response: \(response)!")
-                } else {
-                    print("Your Udacity DELETE request returned an invalid response!")
-                }
-                
-                completionHandler(result: response, error: error)
-                return
-            }
-            
-            /* GUARD: Was there any data returned? */
-            guard let data = data else {
-                print("No data was returned by the request!")
-                return
-            }
-            
-            /* Parse the data and use the data (happens in completion handler)
-            First skip the first 5 characters of the response (Security characters used by Udacity) */
-            
-            let newData = data.subdataWithRange(NSMakeRange(5, data.length - 5))
-            OTMClient.parseJSONWithCompletionHandler(newData, completionHandler: completionHandler)
-        }
-        
-        /* Start the request */
-        task.resume()
-        
-        return task
-    }
-
 
     
     // MARK: Helper functions
@@ -544,28 +188,43 @@ class FlickrClient: NSObject {
         }
     }
         
-    /* Helper: Given raw JSON, return a usable Foundation object */
-    class func parseJSONWithCompletionHandler(data: NSData, completionHandler: (result: AnyObject!, error: NSError?) -> Void) {
-            
-        var parsedResult: AnyObject!
-        do {
-            parsedResult = try NSJSONSerialization.JSONObjectWithData(data, options: .AllowFragments)
-        } catch {
-            let userInfo = [NSLocalizedDescriptionKey : "Could not parse the data as JSON: '\(data)'"]
-            completionHandler(result: nil, error: NSError(domain: "parseJSONWithCompletionHandler", code: 1, userInfo: userInfo))
+  
+    /* Helper: Create bounding box string */
+    func createBoundingBoxString(lat: Double, long: Double) -> String {
+        
+        /* Ensure box is bounded by minimum and maximums */
+        let bottom_left_lon = max(long - Constants.BOUNDING_BOX_HALF_WIDTH, Constants.LON_MIN)
+        let bottom_left_lat = max(lat - Constants.BOUNDING_BOX_HALF_HEIGHT, Constants.LAT_MIN)
+        let top_right_lon = min(long + Constants.BOUNDING_BOX_HALF_HEIGHT, Constants.LON_MAX)
+        let top_right_lat = min(lat + Constants.BOUNDING_BOX_HALF_HEIGHT, Constants.LAT_MAX)
+        
+        return "\(bottom_left_lon),\(bottom_left_lat),\(top_right_lon),\(top_right_lat)"
+    }
+    
+    func generateRandomIndexes(numberOfIndexes: Int) -> [Int] {
+        
+        var randomNumArray: [Int] = []
+        var i = 0
+        while randomNumArray.count < numberOfIndexes {
+            i++
+            let rand = Int(arc4random_uniform(UInt32(numberOfIndexes)))
+            for(var ii = 0; ii < numberOfIndexes; ii++){
+                if !randomNumArray.contains(rand){
+                    randomNumArray.append(rand)
+                }
+            }
         }
-            
-        completionHandler(result: parsedResult, error: nil)
+        return randomNumArray
     }
 
 
     
     // MARK: Shared Instance
     
-    class func sharedInstance() -> OTMClient {
+    class func sharedInstance() -> FlickrClient {
         
         struct Singleton {
-            static var sharedInstance = OTMClient()
+            static var sharedInstance = FlickrClient()
         }
         
         return Singleton.sharedInstance

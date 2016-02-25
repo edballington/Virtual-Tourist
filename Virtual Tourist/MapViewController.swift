@@ -10,7 +10,7 @@ import UIKit
 import MapKit
 import CoreData
 
-class MapViewController: UIViewController, MKMapViewDelegate, NSFetchedResultsController {
+class MapViewController: UIViewController, MKMapViewDelegate {
 
     @IBOutlet weak var mapView: MKMapView!
     
@@ -19,12 +19,21 @@ class MapViewController: UIViewController, MKMapViewDelegate, NSFetchedResultsCo
         
         //TODO: - Load a default map with the settings from the last use
         
-        //TODO: - Set default zoom level if not determined from the saved settings
+        setMapInitialState()
         
-        //TODO: - Load annotations from NSFetchedResults Controller if any
+        //TODO: - Set default zoom level and center if not determined from the saved settings
+        
+        //TODO: - Load annotations from Core Data if any
         
         
     }
+    
+    override func viewWillDisappear(animated: Bool) {
+        
+        saveContext()
+        
+    }
+    
     
     @IBAction func editMap(sender: AnyObject) {
         
@@ -34,7 +43,7 @@ class MapViewController: UIViewController, MKMapViewDelegate, NSFetchedResultsCo
         
         //TODO: = Change right bar button text to say "Done"
         
-        //TODO: - Delete any annotations from the NSFetchedResults Controller that are tapped
+        //TODO: - Delete any annotations from Core Data that are tapped
             
         } else {        //Done with editing map
             
@@ -46,6 +55,43 @@ class MapViewController: UIViewController, MKMapViewDelegate, NSFetchedResultsCo
         
     }
     
+    func setMapInitialState() {
+        
+        let fetchRequest = NSFetchRequest(entityName: "MapState")
+        let storedMapState: MapState?
+        
+        do {
+            storedMapState = try sharedContext.executeFetchRequest(fetchRequest) as? MapState
+            
+        } catch {
+            print("Error retrieving map initial state: \(error)")
+            return
+        }
+        
+        self.mapView.setRegion((storedMapState?.region)!, animated: true)
+        
+        
+        
+    }
+    
+    func loadPins() -> [Pin] {
+        
+        
+    }
+    
+    func addPinsToMap(pins: [Pin]) -> Void {
+        
+    }
+    
+    // MARK: - Core Data Convenience
+    
+    lazy var sharedContext: NSManagedObjectContext =  {
+        return CoreDataStackManager.sharedInstance().managedObjectContext
+    }()
+    
+    func saveContext() {
+        CoreDataStackManager.sharedInstance().saveContext()
+    }
 
 
 }

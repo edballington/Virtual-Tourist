@@ -18,16 +18,16 @@
                         <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <mapView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" mapType="standard" translatesAutoresizingMaskIntoConstraints="NO" id="fEI-PN-DME">
+                            <mapView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" mapType="standard" translatesAutoresizingMaskIntoConstraints="NO" id="wZh-ey-niF">
                                 <rect key="frame" x="0.0" y="64" width="600" height="536"/>
                             </mapView>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
                         <constraints>
-                            <constraint firstItem="fEI-PN-DME" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" id="3vG-UC-h1c"/>
-                            <constraint firstAttribute="trailing" secondItem="fEI-PN-DME" secondAttribute="trailing" id="Ky0-IL-gA4"/>
-                            <constraint firstItem="fEI-PN-DME" firstAttribute="top" secondItem="y3c-jy-aDJ" secondAttribute="bottom" id="d7I-Gd-Syv"/>
-                            <constraint firstItem="wfy-db-euE" firstAttribute="top" secondItem="fEI-PN-DME" secondAttribute="bottom" id="rJi-fH-KlM"/>
+                            <constraint firstAttribute="trailing" secondItem="wZh-ey-niF" secondAttribute="trailing" id="00o-MH-mF3"/>
+                            <constraint firstItem="wfy-db-euE" firstAttribute="top" secondItem="wZh-ey-niF" secondAttribute="bottom" id="MIu-To-8q5"/>
+                            <constraint firstItem="wZh-ey-niF" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" id="aui-bT-YFf"/>
+                            <constraint firstItem="wZh-ey-niF" firstAttribute="top" secondItem="y3c-jy-aDJ" secondAttribute="bottom" id="k1T-ta-ZeB"/>
                         </constraints>
                     </view>
                     <navigationItem key="navigationItem" title="Virtual Tourist" id="eIQ-bM-uCO">
@@ -38,7 +38,7 @@
                         </barButtonItem>
                     </navigationItem>
                     <connections>
-                        <outlet property="mapView" destination="fEI-PN-DME" id="cKf-hM-LFc"/>
+                        <outlet property="mapView" destination="wZh-ey-niF" id="nQk-0h-Agv"/>
                         <segue destination="tGY-Rw-7Ml" kind="show" identifier="ShowPhotoAlbumSegue" id="m3n-nX-qdK"/>
                     </connections>
                 </viewController>
@@ -83,7 +83,7 @@
                                     <inset key="sectionInset" minX="0.0" minY="0.0" maxX="0.0" maxY="0.0"/>
                                 </collectionViewFlowLayout>
                                 <cells>
-                                    <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" id="9FK-cE-7Ym">
+                                    <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" id="9FK-cE-7Ym" customClass="PhotoCollectionViewCell" customModule="Virtual_Tourist" customModuleProvider="target">
                                         <rect key="frame" x="0.0" y="0.0" width="175" height="175"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                         <view key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center">
@@ -93,16 +93,25 @@
                                                 <imageView userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="8BJ-98-nLR">
                                                     <rect key="frame" x="8" y="8" width="159" height="159"/>
                                                 </imageView>
+                                                <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" style="gray" translatesAutoresizingMaskIntoConstraints="NO" id="Khv-Cn-AF8">
+                                                    <rect key="frame" x="77" y="78" width="20" height="20"/>
+                                                </activityIndicatorView>
                                             </subviews>
                                             <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
                                         </view>
                                         <constraints>
                                             <constraint firstItem="8BJ-98-nLR" firstAttribute="leading" secondItem="9FK-cE-7Ym" secondAttribute="leadingMargin" id="KKc-Fo-wN9"/>
                                             <constraint firstItem="8BJ-98-nLR" firstAttribute="top" secondItem="9FK-cE-7Ym" secondAttribute="topMargin" id="N84-Ff-7nR"/>
+                                            <constraint firstItem="Khv-Cn-AF8" firstAttribute="centerY" secondItem="9FK-cE-7Ym" secondAttribute="centerY" id="ZnG-pE-jhg"/>
                                             <constraint firstAttribute="bottomMargin" secondItem="8BJ-98-nLR" secondAttribute="bottom" id="b1G-yf-dte"/>
                                             <constraint firstAttribute="trailingMargin" secondItem="8BJ-98-nLR" secondAttribute="trailing" id="oK0-xU-TmY"/>
+                                            <constraint firstItem="Khv-Cn-AF8" firstAttribute="centerX" secondItem="9FK-cE-7Ym" secondAttribute="centerX" id="oiJ-ff-pSH"/>
                                         </constraints>
                                         <size key="customSize" width="175" height="175"/>
+                                        <connections>
+                                            <outlet property="activityIndicator" destination="Khv-Cn-AF8" id="WNA-SZ-gYO"/>
+                                            <outlet property="imageView" destination="8BJ-98-nLR" id="3LV-Gh-bf4"/>
+                                        </connections>
                                     </collectionViewCell>
                                 </cells>
                             </collectionView>
@@ -143,49 +152,6 @@
                 <placeholder placeholderIdentifier="IBFirstResponder" id="KrV-QB-a8x" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="1117" y="392"/>
-        </scene>
-        <!--Root View Controller-->
-        <scene sceneID="0W2-ZZ-nRA">
-            <objects>
-                <tableViewController id="X59-Ar-lhT" sceneMemberID="viewController">
-                    <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="44" sectionHeaderHeight="28" sectionFooterHeight="28" id="vOC-ax-0lJ">
-                        <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
-                        <prototypes>
-                            <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" selectionStyle="default" indentationWidth="10" id="mzt-ua-KH9">
-                                <rect key="frame" x="0.0" y="92" width="600" height="44"/>
-                                <autoresizingMask key="autoresizingMask"/>
-                                <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="mzt-ua-KH9" id="f6y-WS-wAn">
-                                    <rect key="frame" x="0.0" y="0.0" width="600" height="43"/>
-                                    <autoresizingMask key="autoresizingMask"/>
-                                </tableViewCellContentView>
-                            </tableViewCell>
-                        </prototypes>
-                        <connections>
-                            <outlet property="dataSource" destination="X59-Ar-lhT" id="u1k-Xp-3q3"/>
-                            <outlet property="delegate" destination="X59-Ar-lhT" id="HBB-BR-scs"/>
-                        </connections>
-                    </tableView>
-                    <navigationItem key="navigationItem" title="Root View Controller" id="tpL-fA-xPi"/>
-                </tableViewController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="KQr-7x-PIn" userLabel="First Responder" sceneMemberID="firstResponder"/>
-            </objects>
-        </scene>
-        <!--Navigation Controller-->
-        <scene sceneID="68b-7w-az6">
-            <objects>
-                <navigationController id="fH3-hX-HDD" sceneMemberID="viewController">
-                    <navigationBar key="navigationBar" contentMode="scaleToFill" id="A5U-rb-uFh">
-                        <rect key="frame" x="0.0" y="0.0" width="320" height="44"/>
-                        <autoresizingMask key="autoresizingMask"/>
-                    </navigationBar>
-                    <connections>
-                        <segue destination="X59-Ar-lhT" kind="relationship" relationship="rootViewController" id="YU1-se-sEy"/>
-                    </connections>
-                </navigationController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="6XA-r9-jTD" userLabel="First Responder" sceneMemberID="firstResponder"/>
-            </objects>
         </scene>
     </scenes>
 </document>
