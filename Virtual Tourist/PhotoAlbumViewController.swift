@@ -14,6 +14,8 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDelegate, UICo
 
     @IBOutlet weak var mapView: MKMapView!
     
+    var coordinateForPhotos: CLLocationCoordinate2D
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
