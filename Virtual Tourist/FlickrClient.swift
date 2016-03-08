@@ -16,12 +16,6 @@ class FlickrClient: NSObject {
     /* Shared Session */
     var session: NSURLSession
     
-    /* Authentication state
-    var sessionID : String? = nil
-    var userID : String? = nil
-    var objectID : String? = nil
-    */
-     
 
     //MARK: Initializer
     override init() {

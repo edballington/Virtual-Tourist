@@ -11,13 +11,13 @@ import CoreData
 
 class Pin: NSManagedObject, MKAnnotation {
     
-    @NSManaged var latitude: Double
-    @NSManaged var longitude: Double
+    @NSManaged var pinLatitude: Double
+    @NSManaged var pinLongitude: Double
     @NSManaged var pictures: [Picture]
     
     var coordinate : CLLocationCoordinate2D {
         get {
-            return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+            return CLLocationCoordinate2D(latitude: pinLatitude, longitude: pinLongitude)
         }
     }
     
@@ -31,8 +31,8 @@ class Pin: NSManagedObject, MKAnnotation {
         let entity =  NSEntityDescription.entityForName("Pin", inManagedObjectContext: context)!
         super.init(entity: entity, insertIntoManagedObjectContext: context)
         
-        latitude = lat
-        longitude = long
+        pinLatitude = lat
+        pinLongitude = long
         
     }
 
