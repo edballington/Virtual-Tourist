@@ -143,9 +143,14 @@ class MapViewController: UIViewController, MKMapViewDelegate {
     func addPinsToMap(pins: [Pin]) -> Void {
         
         for pin in pins {
+            
+            let annotation = MKPointAnnotation()
+            annotation.coordinate = pin.coordinate
+            
             dispatch_async(dispatch_get_main_queue(), { () -> Void in
-                self.mapView.addAnnotation(pin)
+                self.mapView.addAnnotation(annotation)
             })
+            
         }
         
     }
@@ -153,20 +158,26 @@ class MapViewController: UIViewController, MKMapViewDelegate {
     //User tapped a pin - delete it if in editing mode or segue to Photo Album view if not
     func mapView(mapView: MKMapView, didSelectAnnotationView view: MKAnnotationView) {
         
-        let selectedPin = view.annotation as! Pin
+        //TODO: - Need to fix all of this
         
-        if editing {
+        let selectedAnnotation = view.annotation
+        if let selectedPin = pinForAnnotation(selectedAnnotation!) {
+        
+            if editing {
             
-            self.mapView.removeAnnotation(selectedPin)
-            sharedContext.deleteObject(selectedPin)
-            saveContext()
+                self.mapView.removeAnnotation(selectedAnnotation!)  //Remove the annotation view
             
-        } else {
+                sharedContext.deleteObject(selectedPin)     //Deleted the corresponding Pin Managed Object
+                saveContext()
             
-            let controller = storyboard?.instantiateViewControllerWithIdentifier("PhotoAlbumViewController") as! PhotoAlbumViewController
-            controller.pinForPhotos = selectedPin
+            } else {
             
-            self.navigationController?.pushViewController(controller, animated: true)
+                let controller = storyboard?.instantiateViewControllerWithIdentifier("PhotoAlbumViewController") as! PhotoAlbumViewController
+                controller.pinForPhotos = selectedPin
+            
+                self.navigationController?.pushViewController(controller, animated: true)
+            
+            }
             
         }
         
@@ -181,12 +192,34 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         let pinLocation = sender.locationInView(mapView)
         let pinCoordinate = mapView.convertPoint(pinLocation, toCoordinateFromView: mapView)
         
+        let annotation = MKPointAnnotation()
+        annotation.coordinate = pinCoordinate
+        
         dispatch_async(dispatch_get_main_queue()) { () -> Void in
-            self.mapView.addAnnotation( Pin(lat: pinCoordinate.latitude, long: pinCoordinate.longitude, context: self.sharedContext) )
+            self.mapView.addAnnotation(annotation)
         }
+        
+        _ = Pin(lat: pinCoordinate.latitude, long: pinCoordinate.longitude, context: self.sharedContext)  //Create a pin object to associate to the annotation and save in shared context
         
         saveContext()
 
+    }
+    
+    //Return the matching Pin managed object for the annotation
+    func pinForAnnotation(annotation: MKAnnotation) -> Pin? {
+        
+        var returnPin = Pin()
+        
+        let pins = loadPins()       //Load the pins from the fetched results controller
+            
+        for pin in pins! {
+                
+            if (pin.coordinate.latitude == annotation.coordinate.latitude && pin.coordinate.longitude == annotation.coordinate.longitude ) { returnPin = pin }
+                
+        }
+        
+        return returnPin
+        
     }
     
     // MARK: - Convenience

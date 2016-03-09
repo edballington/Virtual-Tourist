@@ -6,10 +6,10 @@
 //  Copyright © 2016 Ed Ballington. All rights reserved.
 //
 
-import MapKit
 import CoreData
+import MapKit
 
-class Pin: NSManagedObject, MKAnnotation {
+class Pin: NSManagedObject {
     
     @NSManaged var pinLatitude: Double
     @NSManaged var pinLongitude: Double

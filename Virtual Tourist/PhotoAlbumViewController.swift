@@ -45,7 +45,10 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
             
             self.mapView.setRegion(region, animated: true)
             
-            self.mapView.addAnnotation(self.pinForPhotos)
+            let annotation = MKPointAnnotation()
+            annotation.coordinate = self.pinForPhotos.coordinate
+            
+            self.mapView.addAnnotation(annotation)
             
         }
 
