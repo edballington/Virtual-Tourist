@@ -158,8 +158,6 @@ class MapViewController: UIViewController, MKMapViewDelegate {
     //User tapped a pin - delete it if in editing mode or segue to Photo Album view if not
     func mapView(mapView: MKMapView, didSelectAnnotationView view: MKAnnotationView) {
         
-        //TODO: - Need to fix all of this
-        
         let selectedAnnotation = view.annotation
         if let selectedPin = pinForAnnotation(selectedAnnotation!) {
         
