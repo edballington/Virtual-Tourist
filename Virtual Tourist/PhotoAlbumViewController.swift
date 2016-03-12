@@ -34,8 +34,6 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        self.navigationItem.leftBarButtonItem!.title = "OK"
         
         dispatch_async(dispatch_get_main_queue()) { () -> Void in
             
@@ -122,6 +120,7 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
         let sectionInfo = self.fetchedResultsController.sections![section]
+        print("numberOfItemsInSection: There are \(sectionInfo.numberOfObjects) objects in section: \(section)")
         return sectionInfo.numberOfObjects
         
     }
@@ -174,12 +173,11 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
             
         case .Insert:
             insertedIndexPaths.append(newIndexPath!)
+            print("Inserted new index path: \(newIndexPath)")
             break
-            //collectionView.insertRowsAtIndexPaths([newIndexPath!], withRowAnimation: .Fade)
         case .Delete:
             deletedIndexPaths.append(newIndexPath!)
             break
-            //collectionView.deleteRowsAtIndexPaths([indexPath!], withRowAnimation: .Fade)
         default:
             return
             
@@ -192,12 +190,18 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
         
         collectionView.performBatchUpdates({ () -> Void in
             
+            var i=1
+            print("###There are \(self.insertedIndexPaths.count) elements in the insertedIndexPaths array###")
+            
             for indexPath in self.insertedIndexPaths {
                 self.collectionView.insertItemsAtIndexPaths([indexPath])
+                print("Inserted item \(i++) into collection view at index path: \(indexPath)")
             }
             
+            i=1
             for indexPath in self.deletedIndexPaths {
                 self.collectionView.deleteItemsAtIndexPaths([indexPath])
+                print("Deleted item \(i++) from collection view at index path: \(indexPath)")
             }
             
             //Make sure to save everything
@@ -277,15 +281,20 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
                 
                 if let results = JSONresults {
                     
+                    var i=1
+                    
                     for result in results {
                         
-                        let imageURL = result["url_m"] as! String
+                        let imageURL = result["url_m"]! as String
                         let picture = Picture(imageURL: imageURL, context: self.sharedContext)
-                        self.pinForPhotos.pictures.append(picture)
+                        picture.pin = self.pinForPhotos
+                        print("Loaded photo number: \(i++)")
                         
-                        self.saveContext()
+                        self.collectionView.reloadData()
                         
                     }
+                    
+                    self.saveContext()
                     
                 } else {    //No JSON returned
                     print("No JSON returned from Flickr by getImagesFromFlickrBySearch: \(error)")

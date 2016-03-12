@@ -25,7 +25,8 @@ class FlickrClient: NSObject {
     
     // MARK: GET
     
-    func getImagesFromFlickrBySearch(lat: Double, long: Double, completionHandler: (result: [[String: AnyObject]]?, error: NSError?) -> Void)  {
+    // Return a number of random images from Flickr matching the lat and long coordinates - number to return specified in constant NUM_PHOTOS up to the max number returned
+    func getImagesFromFlickrBySearch(lat: Double, long: Double, completionHandler: (result: [[String: String]]?, error: NSError?) -> Void)  {
         
         let methodArguments: [String: AnyObject]  = [
             "method" : FlickrClient.Methods.photoSearchMethod,
@@ -106,21 +107,21 @@ class FlickrClient: NSObject {
                 return
             }
             
-            completionHandler(result: photosDictionary, error: nil)
-            
-            /* Pick random images from the page
+            // Pick random images from the results
             let totalReturnedImages = photosDictionary.count
             
             let numberOfImages = min(totalReturnedImages, Constants.NUM_PHOTOS)
             let imageIndexArray = self.generateRandomIndexes(numberOfImages)
             
-            var pictureArray = [Picture]()
+            var returnArray = [[String : String]]()
             
             for index in imageIndexArray {
                 let urlString = photosDictionary[index]["url_m"] as! String
-                let photo = Picture(imageURL: urlString, context: self.sharedContext)
-                pictureArray.append(photo)
-            } */
+                let dictionary = ["url_m":urlString]
+                returnArray.append(dictionary)
+            }
+            
+            completionHandler(result: returnArray, error: nil)
             
         }
         
@@ -134,7 +135,7 @@ class FlickrClient: NSObject {
         
         let task = session.dataTaskWithRequest(request) { (data, response, error) -> Void in
             
-            if let error = error {
+            if let _ = error {
                 completionHandler(imageData: nil, error: NSError(domain: "taskForPhoto", code: 0, userInfo: [NSLocalizedDescriptionKey : "error with photo download request"]))
             } else {
                 completionHandler(imageData: data, error: nil)

@@ -4,6 +4,7 @@
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="9530"/>
         <capability name="Constraints to layout margins" minToolsVersion="6.0"/>
+        <capability name="Constraints with non-1.0 multipliers" minToolsVersion="5.1"/>
     </dependencies>
     <scenes>
         <!--Map View Controller-->
@@ -44,7 +45,7 @@
         <!--Photo Album View Controller-->
         <scene sceneID="DOf-oz-ipy">
             <objects>
-                <viewController id="tGY-Rw-7Ml" customClass="PhotoAlbumViewController" customModule="Virtual_Tourist" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="PhotoAlbumViewController" id="tGY-Rw-7Ml" customClass="PhotoAlbumViewController" customModule="Virtual_Tourist" customModuleProvider="target" sceneMemberID="viewController">
                     <layoutGuides>
                         <viewControllerLayoutGuide type="top" id="iv3-be-Qmi"/>
                         <viewControllerLayoutGuide type="bottom" id="ZM7-mc-8OR"/>
@@ -61,16 +62,8 @@
                                     <barButtonItem style="plain" systemItem="flexibleSpace" id="JlA-8O-btc"/>
                                 </items>
                             </toolbar>
-                            <stackView opaque="NO" contentMode="scaleToFill" misplaced="YES" axis="vertical" translatesAutoresizingMaskIntoConstraints="NO" id="bdo-eR-Off">
-                                <rect key="frame" x="0.0" y="64" width="600" height="128"/>
-                                <subviews>
-                                    <mapView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" misplaced="YES" mapType="standard" translatesAutoresizingMaskIntoConstraints="NO" id="M7e-d7-V8E">
-                                        <rect key="frame" x="0.0" y="0.0" width="600" height="128"/>
-                                    </mapView>
-                                </subviews>
-                            </stackView>
-                            <collectionView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" fixedFrame="YES" dataMode="prototypes" translatesAutoresizingMaskIntoConstraints="NO" id="JE7-sk-UAk">
-                                <rect key="frame" x="0.0" y="200" width="600" height="356"/>
+                            <collectionView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" dataMode="prototypes" translatesAutoresizingMaskIntoConstraints="NO" id="JE7-sk-UAk">
+                                <rect key="frame" x="0.0" y="214" width="600" height="342"/>
                                 <collectionViewFlowLayout key="collectionViewLayout" minimumLineSpacing="10" minimumInteritemSpacing="10" id="Unw-yy-SWD">
                                     <size key="itemSize" width="178" height="152"/>
                                     <size key="headerReferenceSize" width="0.0" height="0.0"/>
@@ -110,16 +103,23 @@
                                     </collectionViewCell>
                                 </cells>
                             </collectionView>
+                            <mapView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" mapType="standard" zoomEnabled="NO" scrollEnabled="NO" rotateEnabled="NO" pitchEnabled="NO" translatesAutoresizingMaskIntoConstraints="NO" id="M7e-d7-V8E">
+                                <rect key="frame" x="0.0" y="64" width="600" height="150"/>
+                            </mapView>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                         <constraints>
-                            <constraint firstItem="bdo-eR-Off" firstAttribute="leading" secondItem="w9O-Zx-3U7" secondAttribute="leading" id="7Qf-5h-GwJ"/>
-                            <constraint firstItem="ZM7-mc-8OR" firstAttribute="top" secondItem="j4e-NQ-UOT" secondAttribute="bottom" id="9RL-QE-jc1"/>
-                            <constraint firstItem="bdo-eR-Off" firstAttribute="top" secondItem="iv3-be-Qmi" secondAttribute="bottom" id="F29-4r-ccj"/>
-                            <constraint firstItem="j4e-NQ-UOT" firstAttribute="leading" secondItem="w9O-Zx-3U7" secondAttribute="leading" id="KLJ-l1-z2T"/>
-                            <constraint firstItem="j4e-NQ-UOT" firstAttribute="top" secondItem="bdo-eR-Off" secondAttribute="bottom" id="V6n-E9-qwr"/>
-                            <constraint firstAttribute="trailing" secondItem="j4e-NQ-UOT" secondAttribute="trailing" id="v3q-sf-7LC"/>
-                            <constraint firstAttribute="trailing" secondItem="bdo-eR-Off" secondAttribute="trailing" id="vAE-fa-WFt"/>
+                            <constraint firstItem="M7e-d7-V8E" firstAttribute="top" secondItem="iv3-be-Qmi" secondAttribute="bottom" id="0Hl-BI-3TX"/>
+                            <constraint firstItem="JE7-sk-UAk" firstAttribute="top" secondItem="M7e-d7-V8E" secondAttribute="bottom" id="6rM-gp-drM"/>
+                            <constraint firstItem="JE7-sk-UAk" firstAttribute="leading" secondItem="w9O-Zx-3U7" secondAttribute="leading" id="BBE-WF-r7H"/>
+                            <constraint firstItem="M7e-d7-V8E" firstAttribute="height" secondItem="w9O-Zx-3U7" secondAttribute="height" multiplier="0.25" id="Clb-ZS-qBt"/>
+                            <constraint firstItem="j4e-NQ-UOT" firstAttribute="top" secondItem="JE7-sk-UAk" secondAttribute="bottom" id="HS3-N4-Zg6"/>
+                            <constraint firstAttribute="trailing" secondItem="j4e-NQ-UOT" secondAttribute="trailing" id="LmR-4b-b3R"/>
+                            <constraint firstAttribute="trailing" secondItem="M7e-d7-V8E" secondAttribute="trailing" id="N9d-3S-UQ2"/>
+                            <constraint firstItem="ZM7-mc-8OR" firstAttribute="top" secondItem="j4e-NQ-UOT" secondAttribute="bottom" id="XCl-Tu-Swo"/>
+                            <constraint firstItem="M7e-d7-V8E" firstAttribute="leading" secondItem="w9O-Zx-3U7" secondAttribute="leading" id="i3P-GR-w8x"/>
+                            <constraint firstAttribute="trailing" secondItem="JE7-sk-UAk" secondAttribute="trailing" id="jGI-Vt-NlP"/>
+                            <constraint firstItem="j4e-NQ-UOT" firstAttribute="leading" secondItem="w9O-Zx-3U7" secondAttribute="leading" id="ubH-Yq-ziZ"/>
                         </constraints>
                     </view>
                     <connections>

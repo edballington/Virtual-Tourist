@@ -46,8 +46,10 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         
         //Add a gesture recognizer for long press to add pins
         let longPressRecognizer = UILongPressGestureRecognizer(target: self, action: "dropPin:")
-        longPressRecognizer.minimumPressDuration = 1.0
+        longPressRecognizer.minimumPressDuration = 0.2
         self.mapView.addGestureRecognizer(longPressRecognizer)
+        
+        self.mapView.delegate = self
         
     }
     
@@ -69,6 +71,7 @@ class MapViewController: UIViewController, MKMapViewDelegate {
             "latitudeDelta" : mapView.region.span.latitudeDelta,
             "longitudeDelta" : mapView.region.span.longitudeDelta
         ]
+        
         NSKeyedArchiver.archiveRootObject(mapDictionary, toFile: file)
     }
     
@@ -105,12 +108,12 @@ class MapViewController: UIViewController, MKMapViewDelegate {
             
             //First time use so saved region doesn't exist yet - set to center of continental US with a span that covers the continent
             
-            let latitude : CLLocationDegrees = 33.9
-            let longitude : CLLocationDegrees = 84.0
+            let latitude : CLLocationDegrees = 32.22
+            let longitude : CLLocationDegrees = -98.06
             let center = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
             
-            let latitudeDelta : CLLocationDegrees = 40
-            let longitudeDelta : CLLocationDegrees = 40
+            let latitudeDelta : CLLocationDegrees = 83.31
+            let longitudeDelta : CLLocationDegrees = 64.77
             let span = MKCoordinateSpan(latitudeDelta: latitudeDelta, longitudeDelta: longitudeDelta)
             
             let savedRegion = MKCoordinateRegion(center: center, span: span)
@@ -172,7 +175,10 @@ class MapViewController: UIViewController, MKMapViewDelegate {
             
                 let controller = storyboard?.instantiateViewControllerWithIdentifier("PhotoAlbumViewController") as! PhotoAlbumViewController
                 controller.pinForPhotos = selectedPin
-            
+                
+                let backButton = UIBarButtonItem()
+                backButton.title = "OK"
+                navigationItem.backBarButtonItem = backButton
                 self.navigationController?.pushViewController(controller, animated: true)
             
             }
@@ -206,13 +212,20 @@ class MapViewController: UIViewController, MKMapViewDelegate {
     //Return the matching Pin managed object for the annotation
     func pinForAnnotation(annotation: MKAnnotation) -> Pin? {
         
-        var returnPin = Pin()
+        var returnPin: Pin?
         
         let pins = loadPins()       //Load the pins from the fetched results controller
             
         for pin in pins! {
+            
+            let pinLat = pin.valueForKey("pinLatitude") as! Double
+            let pinLong = pin.valueForKey("pinLongitude") as! Double
                 
-            if (pin.coordinate.latitude == annotation.coordinate.latitude && pin.coordinate.longitude == annotation.coordinate.longitude ) { returnPin = pin }
+            if (pinLat == annotation.coordinate.latitude && pinLong == annotation.coordinate.longitude )
+                {
+                    returnPin = pin
+                    break
+                }
                 
         }
         
