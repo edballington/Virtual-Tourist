@@ -62,6 +62,7 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         
     }
     
+    
     //MARK: - Other methods
     
     func saveMapState() {
@@ -150,6 +151,10 @@ class MapViewController: UIViewController, MKMapViewDelegate {
             let annotation = MKPointAnnotation()
             annotation.coordinate = pin.coordinate
             
+            let annotationView = MKPinAnnotationView(annotation: annotation, reuseIdentifier: nil)
+            annotationView.animatesDrop = true
+            annotationView.draggable = false
+
             dispatch_async(dispatch_get_main_queue(), { () -> Void in
                 self.mapView.addAnnotation(annotation)
             })

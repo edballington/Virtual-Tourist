@@ -41,12 +41,15 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
             let span = MKCoordinateSpanMake(0.2, 0.2)
             let region = MKCoordinateRegionMake(self.pinForPhotos.coordinate, span)
             
-            self.mapView.setRegion(region, animated: true)
+            self.mapView.setRegion(region, animated: false)
             
             let annotation = MKPointAnnotation()
             annotation.coordinate = self.pinForPhotos.coordinate
             
             self.mapView.addAnnotation(annotation)
+            
+            self.collectionView.delegate = self
+            self.collectionView.dataSource = self
             
         }
 
@@ -117,6 +120,11 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     
     //MARK: - Collection View Data Source methods
     
+    func numberOfSectionsInCollectionView(collectionView: UICollectionView) -> Int {
+        return self.fetchedResultsController.sections?.count ?? 0
+    }
+    
+    
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
         let sectionInfo = self.fetchedResultsController.sections![section]
@@ -131,6 +139,8 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
         
         let picture = fetchedResultsController.objectAtIndexPath(indexPath) as! Picture
         configureCell(cell, picture: picture)
+        
+        print("cellForItemAtIndexPath: just configured cell for indexPath: \(indexPath)")
         
         return cell
         
@@ -158,8 +168,8 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     
     
     func controllerWillChangeContent(controller: NSFetchedResultsController) {
-
-        //Initialize the arrays that track the indexPaths to handle the changes in content
+        
+        //Reset the arrays that track the indexPaths to handle the changes in content
         selectedIndexes.removeAll()
         insertedIndexPaths.removeAll()
         deletedIndexPaths.removeAll()
@@ -190,6 +200,7 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
         
         collectionView.performBatchUpdates({ () -> Void in
             
+            print("Beginning performBatchUpdates completion handler")
             var i=1
             print("###There are \(self.insertedIndexPaths.count) elements in the insertedIndexPaths array###")
             
@@ -203,6 +214,11 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
                 self.collectionView.deleteItemsAtIndexPaths([indexPath])
                 print("Deleted item \(i++) from collection view at index path: \(indexPath)")
             }
+            
+            self.insertedIndexPaths.removeAll()
+            self.deletedIndexPaths.removeAll()
+            
+            print("Completed removing the inserted and deleted indexPaths")
             
             //Make sure to save everything
             self.saveContext()
@@ -219,11 +235,8 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     //Set up the collection view cell with a picture
     func configureCell(cell: PhotoCollectionViewCell, picture: Picture) {
         
-        dispatch_async(dispatch_get_main_queue()) { () -> Void in
-            cell.activityIndicator.startAnimating()
-        }
         
-        let task = FlickrClient.sharedInstance().taskForPhoto(picture.imageURL) { (imageData, error) -> Void in
+        let _ = FlickrClient.sharedInstance().taskForPhoto(picture.imageURL) { (imageData, error) -> Void in
             
             if let error = error {
                 print("Error downloading photo: \(error.localizedDescription)")
@@ -236,8 +249,11 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
                 //Update the cell
                 dispatch_async(dispatch_get_main_queue(), { () -> Void in
                     cell.imageView.image = image
-                    cell.activityIndicator.stopAnimating()
                 })
+            }
+            
+            dispatch_async(dispatch_get_main_queue()) { () -> Void in
+                cell.activityIndicator.stopAnimating()
             }
             
         }
