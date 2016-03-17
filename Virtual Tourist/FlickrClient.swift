@@ -25,8 +25,8 @@ class FlickrClient: NSObject {
     
     // MARK: GET
     
-    // Return a number of random images from Flickr matching the lat and long coordinates - number to return specified in constant NUM_PHOTOS up to the max number returned
-    func getImagesFromFlickrBySearch(lat: Double, long: Double, completionHandler: (result: [[String: String]]?, error: NSError?) -> Void)  {
+    // Return a number of random Picture objects from Flickr matching the lat and long coordinates - number to return specified in constant NUM_PHOTOS up to the max number returned
+    func getPicturesFromFlickrBySearch(lat: Double, long: Double, completionHandler: (result: [[String: String]]?, error: NSError?) -> Void)  {
         
         let methodArguments: [String: AnyObject]  = [
             "method" : FlickrClient.Methods.photoSearchMethod,
@@ -36,6 +36,7 @@ class FlickrClient: NSObject {
             "extras" : FlickrClient.Constants.EXTRAS,
             "format" : FlickrClient.Constants.DATA_FORMAT,
             "nojsoncallback" : FlickrClient.Constants.NO_JSON_CALLBACK,
+            "per_page" : FlickrClient.Constants.PHOTOS_PER_PAGE,
             "lat" : lat,
             "lon" : long,
             "bbox" : createBoundingBoxString(lat, long: long)
@@ -128,6 +129,7 @@ class FlickrClient: NSObject {
         task.resume()
     }
     
+    //This function returns a task to download photo data given the photo's Flickr URL
     func taskForPhoto (photoURL: String, completionHandler: (imageData: NSData?, error: NSError?) ->  Void) -> NSURLSessionTask {
         
         let url = NSURL(string: photoURL)

@@ -14,7 +14,7 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     
     //MARK: - Constants
     let GRID_SPACING: CGFloat = 2.0     //Spacing between elements of the collection view grid
-    let EDGE_INSETS: CGFloat = 1.0      //Insets for the collection view sections
+    let EDGE_INSETS: CGFloat = 2.0      //Insets for the collection view sections
 
     //MARK: - Outlets
     @IBOutlet weak var mapView: MKMapView!
@@ -25,10 +25,48 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     var pinForPhotos: Pin!
     var selectedPictures: [Picture]?      //Array to keep track of Pictures selected for removal
     
-    var selectedIndexes = [NSIndexPath]()
-    var insertedIndexPaths = [NSIndexPath]()
-    var deletedIndexPaths = [NSIndexPath]()
+    var selectedIndexes = [NSIndexPath]()       //Tracking array of indexPaths selected by tapping in collectionView
+    var insertedIndexPaths = [NSIndexPath]()    //Tracking array of indexPaths to be inserted in collectionView
+    var deletedIndexPaths = [NSIndexPath]()     //Tracking array of indexPaths to be deleted in collectionView
     
+    
+    //MARK: - Actions
+    
+    //Either remove selected photos or load new collection depending on state of bottom button
+    @IBAction func bottomButtonAction(sender: AnyObject) {
+        
+        if bottomButton.enabled {
+            
+            if selectedIndexes.isEmpty {    //No pictures selected so load new collection
+                
+                //First remove all of the existing pictures
+                for object in fetchedResultsController.fetchedObjects! {
+                    let indexPath = fetchedResultsController.indexPathForObject(object)
+                    sharedContext.deleteObject(fetchedResultsController.objectAtIndexPath(indexPath!) as! Picture)
+                }
+            
+                loadPictures()
+                dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                    self.collectionView.reloadData()
+                })
+                
+            } else {                        //Pictures selected - delete them
+                
+                for indexPath in selectedIndexes {
+                    sharedContext.deleteObject(fetchedResultsController.objectAtIndexPath(indexPath) as! Picture)
+                }
+                
+                //Reset the selectedIndexes array
+                selectedIndexes.removeAll()
+                toggleBottomButton()
+                
+            }
+            
+            self.saveContext()
+            
+        }
+        
+    }
     
     //MARK: - View Controller Lifecycle 
     
@@ -48,20 +86,19 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
             
             self.mapView.addAnnotation(annotation)
             
-            self.collectionView.delegate = self
-            self.collectionView.dataSource = self
-            
         }
+        
+        self.collectionView.delegate = self
+        self.collectionView.dataSource = self
+        fetchedResultsController.delegate = self
 
-        // Fetch the photos data
+        // Fetch the stored photos data if any already exists
         do {
             try fetchedResultsController.performFetch()
         } catch {
-            print("Error fetching pin for Photo Album: \(error)")
+            print("Error fetching Pictures for pin: \(error)")
             abort()
         }
-        
-        fetchedResultsController.delegate = self
         
     }
     
@@ -86,6 +123,7 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
         
         super.viewWillAppear(animated)
         
+        //If there are no photos because this is the first time for this pin then load some
         if pinForPhotos.pictures.isEmpty {
             loadPictures()
         }
@@ -128,7 +166,6 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
         let sectionInfo = self.fetchedResultsController.sections![section]
-        print("numberOfItemsInSection: There are \(sectionInfo.numberOfObjects) objects in section: \(section)")
         return sectionInfo.numberOfObjects
         
     }
@@ -139,9 +176,7 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
         
         let picture = fetchedResultsController.objectAtIndexPath(indexPath) as! Picture
         configureCell(cell, picture: picture)
-        
-        print("cellForItemAtIndexPath: just configured cell for indexPath: \(indexPath)")
-        
+
         return cell
         
     }
@@ -159,13 +194,13 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
             selectedCell.imageView.alpha = 0.5
         }
         
-        //Change the bottom button text back
+        //Change the bottom button function and text to appropriate values 
         toggleBottomButton()
         
     }
     
-    // MARK: - Fetched Results Controller Delegate
     
+    // MARK: - Fetched Results Controller Delegate
     
     func controllerWillChangeContent(controller: NSFetchedResultsController) {
         
@@ -183,10 +218,9 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
             
         case .Insert:
             insertedIndexPaths.append(newIndexPath!)
-            print("Inserted new index path: \(newIndexPath)")
             break
         case .Delete:
-            deletedIndexPaths.append(newIndexPath!)
+            deletedIndexPaths.append(indexPath!)
             break
         default:
             return
@@ -194,31 +228,28 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
         }
         
     }
+
     
     //Perform an animated batch change of all of the updates after collecting the indexPaths into the appropriate arrays
     func controllerDidChangeContent(controller: NSFetchedResultsController) {
         
+        //Enable bottom button if there are any pictures
+        if controller.fetchedObjects?.count > 0 {
+            bottomButton.enabled = true
+        }
+     
         collectionView.performBatchUpdates({ () -> Void in
-            
-            print("Beginning performBatchUpdates completion handler")
-            var i=1
-            print("###There are \(self.insertedIndexPaths.count) elements in the insertedIndexPaths array###")
             
             for indexPath in self.insertedIndexPaths {
                 self.collectionView.insertItemsAtIndexPaths([indexPath])
-                print("Inserted item \(i++) into collection view at index path: \(indexPath)")
             }
             
-            i=1
             for indexPath in self.deletedIndexPaths {
                 self.collectionView.deleteItemsAtIndexPaths([indexPath])
-                print("Deleted item \(i++) from collection view at index path: \(indexPath)")
             }
             
-            self.insertedIndexPaths.removeAll()
-            self.deletedIndexPaths.removeAll()
+            self.collectionView.reloadData()
             
-            print("Completed removing the inserted and deleted indexPaths")
             
             //Make sure to save everything
             self.saveContext()
@@ -249,6 +280,7 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
                 //Update the cell
                 dispatch_async(dispatch_get_main_queue(), { () -> Void in
                     cell.imageView.image = image
+                    cell.imageView.alpha = 1.0
                 })
             }
             
@@ -263,15 +295,20 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     func toggleBottomButton() -> Void {
         
         //If there are any photos selected then change the title, otherwise leave it alone
-        if let selectedCount = selectedPictures?.count {
             
-            if selectedCount > 0 {
-                bottomButton.title = "Remove Selected Pictures"
+            if selectedIndexes.isEmpty {
+                
+                dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                    self.bottomButton.title = "New Collection"
+                })
+                
             } else {
-                bottomButton.title = "New Collection"
+                
+                dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                    self.bottomButton.title = "Remove Selected Pictures"
+                })
+                
             }
-            
-        }
         
     }
     
@@ -286,27 +323,22 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
         //Disable bottom button while pictures are loading
         self.bottomButton.enabled = false
         
-        FlickrClient.sharedInstance().getImagesFromFlickrBySearch(pinForPhotos.pinLatitude, long: pinForPhotos.pinLongitude) { (JSONresults, error) -> Void in
+        FlickrClient.sharedInstance().getPicturesFromFlickrBySearch(pinForPhotos.pinLatitude, long: pinForPhotos.pinLongitude) { (JSONresults, error) -> Void in
             
             if let error = error {
                 dispatch_async(dispatch_get_main_queue(), { () -> Void in
-                    self.showAlertView("Error retrieving photos from Flickr")
-                    print("Error retrieving photos from Flickr: \(error)")
+                    self.showAlertView("Error retrieving photo URL's from Flickr")
+                    print("Error retrieving photo URL's from Flickr: \(error)")
                 })
             } else {
                 
                 if let results = JSONresults {
-                    
-                    var i=1
                     
                     for result in results {
                         
                         let imageURL = result["url_m"]! as String
                         let picture = Picture(imageURL: imageURL, context: self.sharedContext)
                         picture.pin = self.pinForPhotos
-                        print("Loaded photo number: \(i++)")
-                        
-                        self.collectionView.reloadData()
                         
                     }
                     

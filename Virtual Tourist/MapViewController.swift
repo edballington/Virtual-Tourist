@@ -53,6 +53,13 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         
     }
     
+    override func viewWillAppear(animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        print("viewWillAppear")
+
+    }
+    
     override func viewWillDisappear(animated: Bool) {
         
         super.viewWillDisappear(animated)
@@ -153,40 +160,11 @@ class MapViewController: UIViewController, MKMapViewDelegate {
             
             let annotationView = MKPinAnnotationView(annotation: annotation, reuseIdentifier: nil)
             annotationView.animatesDrop = true
-            annotationView.draggable = false
+            annotationView.draggable = true
 
             dispatch_async(dispatch_get_main_queue(), { () -> Void in
                 self.mapView.addAnnotation(annotation)
             })
-            
-        }
-        
-    }
-    
-    //User tapped a pin - delete it if in editing mode or segue to Photo Album view if not
-    func mapView(mapView: MKMapView, didSelectAnnotationView view: MKAnnotationView) {
-        
-        let selectedAnnotation = view.annotation
-        if let selectedPin = pinForAnnotation(selectedAnnotation!) {
-        
-            if editing {
-            
-                self.mapView.removeAnnotation(selectedAnnotation!)  //Remove the annotation view
-            
-                sharedContext.deleteObject(selectedPin)     //Deleted the corresponding Pin Managed Object
-                saveContext()
-            
-            } else {
-            
-                let controller = storyboard?.instantiateViewControllerWithIdentifier("PhotoAlbumViewController") as! PhotoAlbumViewController
-                controller.pinForPhotos = selectedPin
-                
-                let backButton = UIBarButtonItem()
-                backButton.title = "OK"
-                navigationItem.backBarButtonItem = backButton
-                self.navigationController?.pushViewController(controller, animated: true)
-            
-            }
             
         }
         
@@ -261,6 +239,69 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         
         self.view.addSubview(deleteLabel)
     }
+    
+    //MARK: - MapViewDelegate methods
+    
+    //User tapped a pin - delete it if in editing mode or segue to Photo Album view if not
+    func mapView(mapView: MKMapView, didSelectAnnotationView view: MKAnnotationView) {
+        
+        print("Tapped annotation")
+        
+        let selectedAnnotation = view.annotation
+        if let selectedPin = pinForAnnotation(selectedAnnotation!) {
+            
+            if editing {
+                
+                self.mapView.removeAnnotation(selectedAnnotation!)  //Remove the annotation view
+                
+                sharedContext.deleteObject(selectedPin)     //Deleted the corresponding Pin Managed Object
+                saveContext()
+                
+            } else {
+                
+                let controller = storyboard?.instantiateViewControllerWithIdentifier("PhotoAlbumViewController") as! PhotoAlbumViewController
+                controller.pinForPhotos = selectedPin
+                
+                let backButton = UIBarButtonItem()
+                backButton.title = "OK"
+                navigationItem.backBarButtonItem = backButton
+                self.navigationController?.pushViewController(controller, animated: true)
+                
+            }
+            
+        }
+        
+    }
+    
+    func mapView(mapView: MKMapView, viewForAnnotation annotation: MKAnnotation) -> MKAnnotationView? {
+        
+        //Use a dequed annotation view if possible, otherwise create a new one
+        if let annotation = annotation as? MKAnnotation {
+            
+            let identifier = "Pin"
+            var view: MKPinAnnotationView
+            
+            if let dequeuedAnnotatationView = mapView.dequeueReusableAnnotationViewWithIdentifier(identifier) as? MKPinAnnotationView {
+                
+                dequeuedAnnotatationView.annotation = annotation
+                view = dequeuedAnnotatationView
+                
+            } else {
+                
+                view = MKPinAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+                view.canShowCallout = false
+                view.animatesDrop = true
+                view.draggable = false
+            }
+            
+            return view
+        }
+        
+        return nil
+    
+    }
+    
+
     
     // MARK: - Core Data Convenience
     
