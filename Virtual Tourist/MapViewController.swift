@@ -53,13 +53,6 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         
     }
     
-    override func viewWillAppear(animated: Bool) {
-        super.viewWillAppear(animated)
-        
-        print("viewWillAppear")
-
-    }
-    
     override func viewWillDisappear(animated: Bool) {
         
         super.viewWillDisappear(animated)
@@ -265,6 +258,9 @@ class MapViewController: UIViewController, MKMapViewDelegate {
                 let backButton = UIBarButtonItem()
                 backButton.title = "OK"
                 navigationItem.backBarButtonItem = backButton
+                
+                //Deselect the current annotation so it can be selected again after returning from photo album view
+                mapView.deselectAnnotation(selectedAnnotation, animated: true)
                 self.navigationController?.pushViewController(controller, animated: true)
                 
             }
