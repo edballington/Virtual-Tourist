@@ -57,7 +57,10 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         
         super.viewWillDisappear(animated)
         
-        saveContext()
+        dispatch_async(dispatch_get_main_queue()) { () -> Void in
+            CoreDataStackManager.sharedInstance().saveContext()
+        }
+        
         saveMapState()
         
     }
@@ -179,9 +182,12 @@ class MapViewController: UIViewController, MKMapViewDelegate {
             self.mapView.addAnnotation(annotation)
         }
         
-        _ = Pin(lat: pinCoordinate.latitude, long: pinCoordinate.longitude, context: self.sharedContext)  //Create a pin object to associate to the annotation and save in shared context
+        //Create a pin object to associate to the annotation and save in shared context
+        _ = Pin(lat: pinCoordinate.latitude, long: pinCoordinate.longitude, context: self.sharedContext)
         
-        saveContext()
+        dispatch_async(dispatch_get_main_queue()) { () -> Void in
+            CoreDataStackManager.sharedInstance().saveContext()
+        }
 
     }
     
@@ -238,8 +244,6 @@ class MapViewController: UIViewController, MKMapViewDelegate {
     //User tapped a pin - delete it if in editing mode or segue to Photo Album view if not
     func mapView(mapView: MKMapView, didSelectAnnotationView view: MKAnnotationView) {
         
-        print("Tapped annotation")
-        
         let selectedAnnotation = view.annotation
         if let selectedPin = pinForAnnotation(selectedAnnotation!) {
             
@@ -248,7 +252,10 @@ class MapViewController: UIViewController, MKMapViewDelegate {
                 self.mapView.removeAnnotation(selectedAnnotation!)  //Remove the annotation view
                 
                 sharedContext.deleteObject(selectedPin)     //Deleted the corresponding Pin Managed Object
-                saveContext()
+                
+                dispatch_async(dispatch_get_main_queue()) { () -> Void in
+                    CoreDataStackManager.sharedInstance().saveContext()
+                }
                 
             } else {
                 
@@ -305,10 +312,6 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         return CoreDataStackManager.sharedInstance().managedObjectContext
     }()
     
-    func saveContext() {
-        CoreDataStackManager.sharedInstance().saveContext()
-    }
-
 
 }
 

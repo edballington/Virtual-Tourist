@@ -26,7 +26,17 @@ class FlickrClient: NSObject {
     // MARK: GET
     
     // Return a number of random Picture objects from Flickr matching the lat and long coordinates - number to return specified in constant NUM_PHOTOS up to the max number returned
-    func getPicturesFromFlickrBySearch(lat: Double, long: Double, completionHandler: (result: [[String: String]]?, error: NSError?) -> Void)  {
+    func getPicturesFromFlickrBySearch(pin: Pin, completionHandler: (result: [[String: String]]?, error: NSError?) -> Void)  {
+        
+        var randomPage : Int = 1
+        
+        print("Number of pages is \(pin.numPhotoPages)")
+        
+        if let pageNumber = pin.numPhotoPages as? Int {
+            randomPage = Int((arc4random_uniform(UInt32(pageNumber)))) + 1
+        }
+        
+        print("Select from page number: \(randomPage)")
         
         let methodArguments: [String: AnyObject]  = [
             "method" : FlickrClient.Methods.photoSearchMethod,
@@ -37,9 +47,10 @@ class FlickrClient: NSObject {
             "format" : FlickrClient.Constants.DATA_FORMAT,
             "nojsoncallback" : FlickrClient.Constants.NO_JSON_CALLBACK,
             "per_page" : FlickrClient.Constants.PHOTOS_PER_PAGE,
-            "lat" : lat,
-            "lon" : long,
-            "bbox" : createBoundingBoxString(lat, long: long)
+            "page" : randomPage,
+            "lat" : pin.coordinate.latitude,
+            "lon" : pin.coordinate.longitude,
+            "bbox" : createBoundingBoxString(pin.coordinate.latitude, long: pin.coordinate.longitude)
         ]
         
         let session = NSURLSession.sharedSession()
@@ -101,12 +112,24 @@ class FlickrClient: NSObject {
                 return
             }
             
+            /* GUARD: Store the number of returned pages */
+            guard let numberOfPages = resultsDictionary["pages"] as? NSNumber else {
+                print("Cannot find key 'pages' in \(parsedResult)")
+                completionHandler(result: nil, error: nil)
+                return
+            }
+            
             /* GUARD: Is "photo" key in the photosDictionary? */
             guard let photosDictionary = resultsDictionary["photo"] as? [[String: AnyObject]] else {
                 print("Cannot find key 'photo' in \(resultsDictionary)")
                 completionHandler(result: nil, error: nil)
                 return
             }
+            
+            //Store the number of pages of results in the Pin object
+            dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                pin.numPhotoPages = numberOfPages
+            })
             
             // Pick random images from the results
             let totalReturnedImages = photosDictionary.count

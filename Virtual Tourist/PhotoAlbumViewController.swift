@@ -29,6 +29,9 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     var insertedIndexPaths = [NSIndexPath]()    //Tracking array of indexPaths to be inserted in collectionView
     var deletedIndexPaths = [NSIndexPath]()     //Tracking array of indexPaths to be deleted in collectionView
     
+    //Photos save directory
+    var photosDirectory = NSSearchPathForDirectoriesInDomains(.DocumentDirectory, .UserDomainMask, true)[0]
+    
     
     //MARK: - Actions
     
@@ -45,12 +48,10 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
                     sharedContext.deleteObject(fetchedResultsController.objectAtIndexPath(indexPath!) as! Picture)
                 }
             
+                //Load a new set of picture objects
                 loadPictures()
-                dispatch_async(dispatch_get_main_queue(), { () -> Void in
-                    self.collectionView.reloadData()
-                })
                 
-            } else {                        //Pictures selected - delete them
+            } else {                        //Delete the Pictures selected
                 
                 for indexPath in selectedIndexes {
                     sharedContext.deleteObject(fetchedResultsController.objectAtIndexPath(indexPath) as! Picture)
@@ -62,7 +63,9 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
                 
             }
             
-            self.saveContext()
+            dispatch_async(dispatch_get_main_queue()) {
+                CoreDataStackManager.sharedInstance().saveContext()
+            }
             
         }
         
@@ -73,19 +76,17 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        //Set mapviews center and range based on pin coordinates passed to the view controller
+        let span = MKCoordinateSpanMake(0.2, 0.2)
+        let region = MKCoordinateRegionMake(self.pinForPhotos.coordinate, span)
+        
+        self.mapView.setRegion(region, animated: false)
+        
+        let annotation = MKPointAnnotation()
+        annotation.coordinate = self.pinForPhotos.coordinate
+        
         dispatch_async(dispatch_get_main_queue()) { () -> Void in
-            
-            //Set mapviews center and range based on pin coordinates passed to the view controller
-            let span = MKCoordinateSpanMake(0.2, 0.2)
-            let region = MKCoordinateRegionMake(self.pinForPhotos.coordinate, span)
-            
-            self.mapView.setRegion(region, animated: false)
-            
-            let annotation = MKPointAnnotation()
-            annotation.coordinate = self.pinForPhotos.coordinate
-            
             self.mapView.addAnnotation(annotation)
-            
         }
         
         self.collectionView.delegate = self
@@ -135,10 +136,6 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     lazy var sharedContext: NSManagedObjectContext = {
         return CoreDataStackManager.sharedInstance().managedObjectContext
     }()
-    
-    func saveContext() {
-        CoreDataStackManager.sharedInstance().saveContext()
-    }
     
     lazy var fetchedResultsController: NSFetchedResultsController = {
         
@@ -252,7 +249,9 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
             
             
             //Make sure to save everything
-            self.saveContext()
+            dispatch_async(dispatch_get_main_queue()) {
+                CoreDataStackManager.sharedInstance().saveContext()
+            }
             
             }, completion: nil)
         
@@ -266,30 +265,48 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     //Set up the collection view cell with a picture
     func configureCell(cell: PhotoCollectionViewCell, picture: Picture) {
         
-        
-        let _ = FlickrClient.sharedInstance().taskForPhoto(picture.imageURL) { (imageData, error) -> Void in
+        //First check to see if there is a downloaded copy of the image if so display it, if not get one from Flickr
+        if let image = picture.image {
             
-            if let error = error {
-                print("Error downloading photo: \(error.localizedDescription)")
-            }
-            
-            if let data = imageData {
-                
-                let image = UIImage(data: data)
-                
-                //Update the cell
-                dispatch_async(dispatch_get_main_queue(), { () -> Void in
-                    cell.imageView.image = image
-                    cell.imageView.alpha = 1.0
-                })
-            }
-            
-            dispatch_async(dispatch_get_main_queue()) { () -> Void in
+            //Update the cell
+            dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                cell.imageView.image = image
+                cell.imageView.alpha = 1.0
                 cell.activityIndicator.stopAnimating()
-            }
+            })
+            
+        } else {
+            
+            let _ = FlickrClient.sharedInstance().taskForPhoto(picture.imageURL) { (imageData, error) -> Void in
+            
+                if let error = error {
+                print("Error downloading photo: \(error.localizedDescription)")
+                }
+                
+                if let data = imageData {
+                
+                    let image = UIImage(data: data)
+                    
+                    //Store the image file in the file system and update the Picture managed object with the local file name
+                    let imageFileName: String = self.savePhotoInFilesystem(data, flickrPhotoURL: NSURL(string: picture.imageURL)!)
+                    picture.imageFilePath = imageFileName
+                    
+                    dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                        
+                        //Update the cell
+                        cell.imageView.image = image
+                        cell.imageView.alpha = 1.0
+                    })
+                }
+            
+                dispatch_async(dispatch_get_main_queue()) { () -> Void in
+                    cell.activityIndicator.stopAnimating()
+                }
             
         }
         
+    }
+    
     }
     
     func toggleBottomButton() -> Void {
@@ -323,7 +340,7 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
         //Disable bottom button while pictures are loading
         self.bottomButton.enabled = false
         
-        FlickrClient.sharedInstance().getPicturesFromFlickrBySearch(pinForPhotos.pinLatitude, long: pinForPhotos.pinLongitude) { (JSONresults, error) -> Void in
+        FlickrClient.sharedInstance().getPicturesFromFlickrBySearch(pinForPhotos) { (JSONresults, error) -> Void in
             
             if let error = error {
                 dispatch_async(dispatch_get_main_queue(), { () -> Void in
@@ -337,12 +354,16 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
                     for result in results {
                         
                         let imageURL = result["url_m"]! as String
+                        
                         let picture = Picture(imageURL: imageURL, context: self.sharedContext)
                         picture.pin = self.pinForPhotos
                         
                     }
                     
-                    self.saveContext()
+                    dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                        self.collectionView.reloadData()
+                        CoreDataStackManager.sharedInstance().saveContext()
+                    })
                     
                 } else {    //No JSON returned
                     print("No JSON returned from Flickr by getImagesFromFlickrBySearch: \(error)")
@@ -363,5 +384,16 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
         }
 
 }
+    
+    //Saves the image file in the file system and returns a String with the local file name to update the Picture object with
+    func savePhotoInFilesystem(imageData: NSData, flickrPhotoURL: NSURL) -> String {
+        
+        let photoFileName : String = flickrPhotoURL.lastPathComponent!
+        let photoFileURL: NSURL = NSURL(fileURLWithPath: photosDirectory, isDirectory: true).URLByAppendingPathComponent(photoFileName)
+        
+        imageData.writeToURL(photoFileURL, atomically: true)
+        
+        return photoFileName
+    }
 
 }

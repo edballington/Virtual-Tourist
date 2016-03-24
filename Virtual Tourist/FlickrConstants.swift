@@ -21,7 +21,7 @@ extension FlickrClient {
         static let NO_JSON_CALLBACK = "1"
         static let CONTENT_TYPE = "1"
         static let NUM_PHOTOS = 21
-        static let PHOTOS_PER_PAGE = 200    
+        static let PHOTOS_PER_PAGE = 500
         
         static let BOUNDING_BOX_HALF_WIDTH = 1.0
         static let BOUNDING_BOX_HALF_HEIGHT = 1.0
