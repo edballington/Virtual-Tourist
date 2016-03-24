@@ -125,7 +125,7 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
         super.viewWillAppear(animated)
         
         //If there are no photos because this is the first time for this pin then load some
-        if pinForPhotos.pictures.isEmpty {
+        if pinForPhotos.pictures.count == 0 {
             loadPictures()
         }
         
@@ -287,11 +287,11 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
                 
                     let image = UIImage(data: data)
                     
+                    dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                        
                     //Store the image file in the file system and update the Picture managed object with the local file name
                     let imageFileName: String = self.savePhotoInFilesystem(data, flickrPhotoURL: NSURL(string: picture.imageURL)!)
                     picture.imageFilePath = imageFileName
-                    
-                    dispatch_async(dispatch_get_main_queue(), { () -> Void in
                         
                         //Update the cell
                         cell.imageView.image = image
@@ -351,16 +351,16 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
                 
                 if let results = JSONresults {
                     
-                    for result in results {
-                        
-                        let imageURL = result["url_m"]! as String
-                        
-                        let picture = Picture(imageURL: imageURL, context: self.sharedContext)
-                        picture.pin = self.pinForPhotos
-                        
-                    }
-                    
                     dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                    
+                        for result in results {
+                        
+                            let imageURL = result["url_m"]! as String
+                        
+                            let picture = Picture(imageURL: imageURL, context: self.sharedContext)
+                            picture.pin = self.pinForPhotos
+                        
+                        }
                         self.collectionView.reloadData()
                         CoreDataStackManager.sharedInstance().saveContext()
                     })

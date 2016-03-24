@@ -13,7 +13,7 @@ class Pin: NSManagedObject {
     
     @NSManaged var pinLatitude: Double
     @NSManaged var pinLongitude: Double
-    @NSManaged var pictures: [Picture]
+    @NSManaged var pictures: NSSet
     @NSManaged var numPhotoPages: NSNumber?   //Number of pages of results returned from Flickr
     
     var coordinate : CLLocationCoordinate2D {
