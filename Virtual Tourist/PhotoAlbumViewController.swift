@@ -28,6 +28,7 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     var selectedIndexes = [NSIndexPath]()       //Tracking array of indexPaths selected by tapping in collectionView
     var insertedIndexPaths = [NSIndexPath]()    //Tracking array of indexPaths to be inserted in collectionView
     var deletedIndexPaths = [NSIndexPath]()     //Tracking array of indexPaths to be deleted in collectionView
+    var updatedIndexPaths = [NSIndexPath]()     //Tracking array of indexPaths to be udpated in collectionView
     
     //Photos save directory
     var photosDirectory = NSSearchPathForDirectoriesInDomains(.DocumentDirectory, .UserDomainMask, true)[0]
@@ -124,10 +125,15 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
         
         super.viewWillAppear(animated)
         
+        print("viewWillAppear: There are \(fetchedResultsController.fetchedObjects?.count) pictures available")
+        
         //If there are no photos because this is the first time for this pin then load some
-        if pinForPhotos.pictures.count == 0 {
+        if fetchedResultsController.fetchedObjects?.count == 0 {
             loadPictures()
         }
+        
+        print("viewWillAppear: There are \(fetchedResultsController.fetchedObjects?.count) pictures available")
+        
         
     }
     
@@ -156,6 +162,8 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     //MARK: - Collection View Data Source methods
     
     func numberOfSectionsInCollectionView(collectionView: UICollectionView) -> Int {
+        
+        print("numberOfSectionsInCollectionView: \(self.fetchedResultsController.sections?.count) sections")
         return self.fetchedResultsController.sections?.count ?? 0
     }
     
@@ -163,6 +171,9 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
         let sectionInfo = self.fetchedResultsController.sections![section]
+        
+        print("numberOfItemsInSection: \(self.fetchedResultsController.sections![section].numberOfObjects) objects")
+        
         return sectionInfo.numberOfObjects
         
     }
@@ -186,9 +197,11 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
         if let selectedIndex = selectedIndexes.indexOf(indexPath) {
             selectedIndexes.removeAtIndex(selectedIndex)
             selectedCell.imageView.alpha = 1.0
+            print("Removed indexPath: \(indexPath) from selectedIndexes array")
         } else {
             selectedIndexes.append(indexPath)
             selectedCell.imageView.alpha = 0.5
+            print("Added indexPath: \(indexPath) from selectedIndexes array")
         }
         
         //Change the bottom button function and text to appropriate values 
@@ -202,9 +215,9 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     func controllerWillChangeContent(controller: NSFetchedResultsController) {
         
         //Reset the arrays that track the indexPaths to handle the changes in content
-        selectedIndexes.removeAll()
         insertedIndexPaths.removeAll()
         deletedIndexPaths.removeAll()
+        updatedIndexPaths.removeAll()
         
     }
     
@@ -218,6 +231,9 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
             break
         case .Delete:
             deletedIndexPaths.append(indexPath!)
+            break
+        case .Update:
+            updatedIndexPaths.append(indexPath!)
             break
         default:
             return
@@ -245,13 +261,17 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
                 self.collectionView.deleteItemsAtIndexPaths([indexPath])
             }
             
-            self.collectionView.reloadData()
+            for indexPath in self.updatedIndexPaths {
+                self.collectionView.reloadItemsAtIndexPaths([indexPath])
+            }
             
-            
-            //Make sure to save everything
+            /*
+            //Make sure to reload collectionView and save everything
             dispatch_async(dispatch_get_main_queue()) {
+                self.collectionView.reloadData()
                 CoreDataStackManager.sharedInstance().saveContext()
             }
+ */
             
             }, completion: nil)
         
