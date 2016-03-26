@@ -125,15 +125,10 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
         
         super.viewWillAppear(animated)
         
-        print("viewWillAppear: There are \(fetchedResultsController.fetchedObjects?.count) pictures available")
-        
-        //If there are no photos because this is the first time for this pin then load some
+        //If there are no Pictures because this is the first time for this pin then load some
         if fetchedResultsController.fetchedObjects?.count == 0 {
             loadPictures()
         }
-        
-        print("viewWillAppear: There are \(fetchedResultsController.fetchedObjects?.count) pictures available")
-        
         
     }
     
@@ -163,7 +158,6 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     
     func numberOfSectionsInCollectionView(collectionView: UICollectionView) -> Int {
         
-        print("numberOfSectionsInCollectionView: \(self.fetchedResultsController.sections?.count) sections")
         return self.fetchedResultsController.sections?.count ?? 0
     }
     
@@ -171,8 +165,6 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
         let sectionInfo = self.fetchedResultsController.sections![section]
-        
-        print("numberOfItemsInSection: \(self.fetchedResultsController.sections![section].numberOfObjects) objects")
         
         return sectionInfo.numberOfObjects
         
@@ -197,11 +189,9 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
         if let selectedIndex = selectedIndexes.indexOf(indexPath) {
             selectedIndexes.removeAtIndex(selectedIndex)
             selectedCell.imageView.alpha = 1.0
-            print("Removed indexPath: \(indexPath) from selectedIndexes array")
         } else {
             selectedIndexes.append(indexPath)
             selectedCell.imageView.alpha = 0.5
-            print("Added indexPath: \(indexPath) from selectedIndexes array")
         }
         
         //Change the bottom button function and text to appropriate values 
@@ -265,13 +255,11 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
                 self.collectionView.reloadItemsAtIndexPaths([indexPath])
             }
             
-            /*
             //Make sure to reload collectionView and save everything
             dispatch_async(dispatch_get_main_queue()) {
                 self.collectionView.reloadData()
                 CoreDataStackManager.sharedInstance().saveContext()
             }
- */
             
             }, completion: nil)
         
@@ -381,7 +369,9 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
                             picture.pin = self.pinForPhotos
                         
                         }
+                        
                         self.collectionView.reloadData()
+                        
                         CoreDataStackManager.sharedInstance().saveContext()
                     })
                     
