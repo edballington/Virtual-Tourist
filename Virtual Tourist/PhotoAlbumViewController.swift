@@ -104,6 +104,16 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
         
     }
     
+    override func viewWillAppear(animated: Bool) {
+        
+        super.viewWillAppear(true)
+        
+        //Load some new Pictures in case there aren't any already present
+        if self.fetchedResultsController.fetchedObjects?.count == 0 {
+            loadPictures()
+        }
+    }
+    
     override func viewDidLayoutSubviews() {
         
         super.viewDidLayoutSubviews()
@@ -121,17 +131,7 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
         
     }
     
-    override func viewWillAppear(animated: Bool) {
-        
-        super.viewWillAppear(animated)
-        
-        //If there are no Pictures because this is the first time for this pin then load some
-        if fetchedResultsController.fetchedObjects?.count == 0 {
-            loadPictures()
-        }
-        
-    }
-    
+   
     // MARK: - Core Data Convenience
     
     lazy var sharedContext: NSManagedObjectContext = {
@@ -253,12 +253,6 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
             
             for indexPath in self.updatedIndexPaths {
                 self.collectionView.reloadItemsAtIndexPaths([indexPath])
-            }
-            
-            //Make sure to reload collectionView and save everything
-            dispatch_async(dispatch_get_main_queue()) {
-                self.collectionView.reloadData()
-                CoreDataStackManager.sharedInstance().saveContext()
             }
             
             }, completion: nil)

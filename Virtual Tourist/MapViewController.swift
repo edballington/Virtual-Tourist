@@ -182,8 +182,9 @@ class MapViewController: UIViewController, MKMapViewDelegate {
             self.mapView.addAnnotation(annotation)
         }
         
-        //Create a pin object to associate to the annotation and save in shared context
-        _ = Pin(lat: pinCoordinate.latitude, long: pinCoordinate.longitude, context: self.sharedContext)
+        //Create a pin object to associate to the annotation and load the Picture objects so they are ready to go for the PhotoAlbumViewController
+        let pinForPhotos = Pin(lat: pinCoordinate.latitude, long: pinCoordinate.longitude, context: self.sharedContext)
+        self.loadPictures(pinForPhotos)
         
         dispatch_async(dispatch_get_main_queue()) { () -> Void in
             CoreDataStackManager.sharedInstance().saveContext()
@@ -214,6 +215,50 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         return returnPin
         
     }
+    
+    //Load Picture objects for the newly created pin so they are ready to go when PhotoAlbumViewController is pushed
+    func loadPictures(pinForPhotos: Pin) {
+        
+        FlickrClient.sharedInstance().getPicturesFromFlickrBySearch(pinForPhotos) { (JSONresults, error) -> Void in
+            
+            if let error = error {
+                dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                    self.showAlertView("Error retrieving photo URL's from Flickr")
+                    print("Error retrieving photo URL's from Flickr: \(error)")
+                })
+            } else {
+                
+                if let results = JSONresults {
+                    
+                    dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                        
+                        for result in results {
+                            
+                            let imageURL = result["url_m"]! as String
+                            
+                            let picture = Picture(imageURL: imageURL, context: self.sharedContext)
+                            picture.pin = pinForPhotos
+                            
+                        }
+                        
+                        CoreDataStackManager.sharedInstance().saveContext()
+                    })
+                    
+                } else {    //No JSON returned
+                    print("No JSON returned from Flickr by getImagesFromFlickrBySearch: \(error)")
+                    dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                        self.showAlertView("Error parsing photos from Flickr")
+                    })
+                    
+                }
+                
+                
+            }
+            
+        }
+        
+    }
+
     
     // MARK: - Convenience
     
@@ -294,7 +339,7 @@ class MapViewController: UIViewController, MKMapViewDelegate {
                 view = MKPinAnnotationView(annotation: annotation, reuseIdentifier: identifier)
                 view.canShowCallout = false
                 view.animatesDrop = true
-                view.draggable = false
+                view.draggable = true
             }
             
             return view

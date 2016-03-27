@@ -30,8 +30,6 @@ class FlickrClient: NSObject {
         
         var randomPage : Int = 1
         
-        print("Number of pages is \(pin.numPhotoPages)")
-        
         if let pageNumber = pin.numPhotoPages as? Int {
             randomPage = Int((arc4random_uniform(UInt32(pageNumber)))) + 1
         }
