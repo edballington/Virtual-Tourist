@@ -46,7 +46,7 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         
         //Add a gesture recognizer for long press to add pins
         let longPressRecognizer = UILongPressGestureRecognizer(target: self, action: "dropPin:")
-        longPressRecognizer.minimumPressDuration = 0.2
+        longPressRecognizer.minimumPressDuration = 0.6
         self.mapView.addGestureRecognizer(longPressRecognizer)
         
         self.mapView.delegate = self
@@ -302,6 +302,20 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         
         return nil
     
+    }
+    
+    //Handle dropped pin dragging to new map location
+    func mapView(mapView: MKMapView, annotationView view: MKAnnotationView, didChangeDragState newState: MKAnnotationViewDragState, fromOldState oldState: MKAnnotationViewDragState) {
+        
+        switch (newState) {
+        case .Starting:
+            view.dragState = .Dragging
+        case .Ending, .Canceling:
+            view.dragState = .None
+        default:
+            break
+        }
+        
     }
     
 

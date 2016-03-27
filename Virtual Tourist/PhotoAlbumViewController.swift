@@ -370,8 +370,6 @@ class PhotoAlbumViewController: UIViewController, NSFetchedResultsControllerDele
                         
                         }
                         
-                        self.collectionView.reloadData()
-                        
                         CoreDataStackManager.sharedInstance().saveContext()
                     })
                     
